@@ -1,0 +1,235 @@
+# Copyright 2025 Marcelo Parisi (github.com/feitnomore)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: validate-code
+  namespace: mnp-cicd
+spec:
+  description: Clones an application repository and then runs 'make' to validate.
+  params:
+    - name: APP_REPO_URL
+      description: "URL of the application Git repository."
+      type: string
+    - name: APP_REPO_BRANCH
+      description: "Revision of the application Git repository."
+      type: string
+      default: "main"
+    - name: app-clone-subdir
+      description: "Subdirectory within the shared-source workspace to clone the application repo into."
+      type: string
+      default: "source-code"
+    - name: makefile-subdir-in-app
+      description: "Subdirectory within the cloned application code where the Makefile is located."
+      type: string
+      default: "."
+    - name: IMAGE_REGISTRY
+      description: The registry URL.
+      type: string
+    - name: CLI_IMAGE_NAME
+      description: image name.
+      type: string
+    - name: CLI_IMAGE_TAG
+      description: image tag.
+      type: string
+    - name: IMAGE_NAME
+      description: image name.
+      type: string
+    - name: IMAGE_TAG
+      description: image tag.
+      type: string
+
+  workspaces:
+    - name: shared-source
+      description: "Workspace for the cloned application source code."
+    - name: docker-credentials
+      description: "Docker credential"
+      optional: true
+    - name: shared-output
+      description: "Workspace for storing logs and output files."
+
+  tasks:
+    - name: clone-app-repository
+      taskRef:
+        name: git-clone
+      params:
+        - name: url
+          value: $(params.APP_REPO_URL)
+        - name: revision
+          value: $(params.APP_REPO_BRANCH)
+        - name: subdirectory
+          value: $(params.app-clone-subdir)
+        - name: deleteExisting
+          value: "true"
+        - name: sslVerify
+          value: "false"
+      workspaces:
+        - name: source
+          workspace: shared-source
+
+    - name: fmt 
+      taskRef:
+        name: golang-make
+      runAfter: [clone-app-repository]
+      params:
+        - name: MAKE_TARGETS
+          value: "fmt" 
+        - name: SUBDIRECTORY
+          value: "$(params.app-clone-subdir)/$(params.makefile-subdir-in-app)"
+        - name: pipelinerun-name
+          value: $(context.pipelineRun.name)
+      workspaces:
+        - name: source
+          workspace: shared-source
+        - name: shared-output
+          workspace: shared-output
+
+    - name: lint 
+      taskRef:
+        name: golang-make
+      runAfter: [clone-app-repository]
+      params:
+        - name: MAKE_TARGETS
+          value: "lint" 
+        - name: SUBDIRECTORY
+          value: "$(params.app-clone-subdir)/$(params.makefile-subdir-in-app)"
+        - name: pipelinerun-name
+          value: $(context.pipelineRun.name)
+      workspaces:
+        - name: source
+          workspace: shared-source
+        - name: shared-output
+          workspace: shared-output
+
+    - name: test
+      taskRef:
+        name: golang-make
+      runAfter: [lint]
+      params:
+        - name: MAKE_TARGETS
+          value: "test-verbose"
+        - name: SUBDIRECTORY
+          value: "$(params.app-clone-subdir)/$(params.makefile-subdir-in-app)"
+        - name: pipelinerun-name
+          value: $(context.pipelineRun.name)
+      workspaces:
+        - name: source
+          workspace: shared-source
+        - name: shared-output
+          workspace: shared-output
+
+    - name: coverage
+      taskRef:
+        name: golang-make
+      runAfter: [test]
+      params:
+        - name: MAKE_TARGETS
+          value: "coverage-report-html"
+        - name: SUBDIRECTORY
+          value: "$(params.app-clone-subdir)/$(params.makefile-subdir-in-app)"
+        - name: pipelinerun-name
+          value: $(context.pipelineRun.name)
+      workspaces:
+        - name: source
+          workspace: shared-source
+        - name: shared-output
+          workspace: shared-output
+
+    - name: binary
+      taskRef:
+        name: golang-make
+      runAfter: [coverage]
+      params:
+        - name: MAKE_TARGETS
+          value: "all"
+        - name: SUBDIRECTORY
+          value: "$(params.app-clone-subdir)/$(params.makefile-subdir-in-app)"
+        - name: pipelinerun-name
+          value: $(context.pipelineRun.name)
+      workspaces:
+        - name: source
+          workspace: shared-source
+        - name: shared-output
+          workspace: shared-output
+
+    - name: vuln-check
+      taskRef:
+        name: golang-make
+      runAfter: [coverage]
+      params:
+        - name: MAKE_TARGETS
+          value: "vuln-check"
+        - name: SUBDIRECTORY
+          value: "$(params.app-clone-subdir)/$(params.makefile-subdir-in-app)"
+        - name: pipelinerun-name
+          value: $(context.pipelineRun.name)
+      workspaces:
+        - name: source
+          workspace: shared-source
+        - name: shared-output
+          workspace: shared-output
+
+    - name: build-container-image
+      taskRef:
+        name: build-container-image
+      runAfter: [binary]
+      params:
+        - name: IMAGE_REGISTRY
+          value: "$(params.IMAGE_REGISTRY)"
+        - name: IMAGE_NAME
+          value: "$(params.IMAGE_NAME)"
+        - name: IMAGE_TAG
+          value: "$(params.IMAGE_TAG)"
+        - name: DOCKERFILE_PATH
+          value: ./Dockerfile.ci 
+        - name: CONTEXT_SUBDIR
+          value: "$(params.app-clone-subdir)/$(params.makefile-subdir-in-app)"
+      workspaces:
+        - name: source
+          workspace: shared-source
+        - name: dockerconfig
+          workspace: docker-credentials
+
+    - name: run-trivy
+      taskRef:
+        name: run-trivy
+      runAfter: [build-container-image]
+      params:
+        - name: IMAGE_REGISTRY
+          value: "$(params.IMAGE_REGISTRY)"
+        - name: IMAGE_NAME
+          value: "$(params.IMAGE_NAME)"
+        - name: IMAGE_TAG
+          value: "$(params.IMAGE_TAG)"
+        - name: pipelinerun-name
+          value: $(context.pipelineRun.name)
+      workspaces:
+        - name: dockerconfig
+          workspace: docker-credentials
+        - name: shared-output
+          workspace: shared-output
+
+  finally: 
+    - name: check-overall-status
+      taskRef: { name: check-pipelinerun-status }
+      params:
+        - name: pipelinerun-name
+          value: $(context.pipelineRun.name)
+        - name: IMAGE_REGISTRY
+          value: $(params.IMAGE_REGISTRY)
+        - name: CLI_IMAGE_NAME
+          value: $(params.CLI_IMAGE_NAME)
+        - name: CLI_IMAGE_TAG
+          value: $(params.CLI_IMAGE_TAG)

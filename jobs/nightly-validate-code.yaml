@@ -1,0 +1,62 @@
+# Copyright 2025 Marcelo Parisi (github.com/feitnomore)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: nightly-validate-code
+  namespace: kvm-cicd
+spec:
+  schedule: "20 02 * * *"
+  timeZone: "America/Sao_Paulo"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: worker
+            image: kubevirtmanager/cli-tools:nightly
+            imagePullPolicy: Always
+            env:
+            - name: PRE
+              value: "nightly-"
+            - name: MNP_CRTL_GIT
+              value: "https://github.com/kubevirt-manager/mnp-nft-bridge.git"
+            - name: IMAGE
+              value: "nightly"
+            - name: BRANCH
+              value: "main"
+            - name: PROJECT
+              value: "mnp-nft-bridge"
+            - name: app-clone-subdir
+              value: "mnp-app-src"
+            - name: IMAGE_REGISTRY
+              value: "kubevirtmanager"
+            - name: CLI_IMAGE_NAME
+              value: "cli-tools"
+            - name: CLI_IMAGE_TAG
+              value: "nightly"
+            - name: IMAGE_NAME
+              value: "mnp-nft-bridge"
+            - name: IMAGE_TAG
+              value: "nightly"
+            command:
+            - /bin/bash
+            - -c
+            - envsubst < /opt/validate-code.yaml | kubectl create -f -
+          restartPolicy: OnFailure
+

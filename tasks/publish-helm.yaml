@@ -1,0 +1,42 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: publish-helm-chart
+spec:
+  workspaces:
+    - name: source
+      description: The workspace containing the Helm chart.
+  params:
+    - name: chart-path
+      type: string
+      description: The path to the Helm chart directory inside the workspace.
+    - name: repository-url
+      type: string
+      description: The URL of the Helm chart repository.
+    - name: repository-username
+      type: string
+      description: The username for the repository (if required).
+      default: ""
+    - name: repository-password-secret
+      type: string
+      description: The name of the secret containing the repository password.
+      default: ""
+  steps:
+    - name: helm-login
+      image: alpine/helm:latest
+      script: |
+        #!/usr/bin/env sh
+        if [ -n "$(params.repository-username)" ] && [ -n "$(params.repository-password-secret)" ]; then
+          HELM_PASSWORD=$(cat /tekton/home/$(params.repository-password-secret)/password)
+          helm registry login --username "$(params.repository-username)" --password "$HELM_PASSWORD" "$(params.repository-url)"
+        fi
+
+    - name: helm-publish
+      image: alpine/helm:latest
+      script: |
+        #!/usr/bin/env sh
+        cd $(workspaces.source.path)
+        helm package $(params.chart-path)
+        
+        CHART_NAME_VERSION=$(helm show chart $(params.chart-path) | grep '^name:' | awk '{print $2}')-$(helm show chart $(params.chart-path) | grep '^version:' | awk '{print $2}')
+        helm push ${CHART_NAME_VERSION}.tgz oci://$(params.repository-url)
