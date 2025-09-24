@@ -1,0 +1,104 @@
+# Copyright 2025 Marcelo Parisi (github.com/feitnomore)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Use a stable Ubuntu LTS release as the base
+FROM ubuntu:22.04
+
+# Set non-interactive frontend for apt-get to prevent it from hanging
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Define build-time arguments for tool versions for easy updates
+ARG KIND_VERSION="v0.22.0"
+ARG KUBECTL_VERSION="v1.30.4" # Use a specific version for reproducibility
+ARG HELM_VERSION="v3.15.2"
+ARG KUSTOMIZE_VERSION="v5.4.2"
+ARG JQ_VERSION="1.7.1"
+ARG YQ_VERSION="v4.47.2"
+ARG TKN_VERSION="0.41.1"
+
+# YAMLs needed to execute tasks/pipelines
+COPY templates/*.yaml /opt/
+RUN chmod 777 /opt/*.yaml
+
+# Install base dependencies and the official Docker CLI
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    gettext-base \
+    gettext \
+    ca-certificates \
+    curl \
+    git \
+    gnupg \
+    bash \
+    mysql-client-8.0 \
+    lftp \
+    ssh && \
+    # Install Docker CLI from the official Docker repository (most reliable method)
+    install -m 0755 -d /etc/apt/keyrings && \
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc && \
+    chmod a+r /etc/apt/keyrings/docker.asc && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+    $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+    tee /etc/apt/sources.list.d/docker.list > /dev/null && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends docker-ce-cli && \
+    # Install Github CLI
+    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg &&\
+    chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null && \
+    apt-get update && apt-get install -y gh && \
+    # Clean up apt cache to reduce image size
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Download and install the rest of the CLI tools in a single layer
+RUN curl -Lo /usr/local/bin/kind "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-amd64" && \
+    chmod +x /usr/local/bin/kind && \
+    # Kubectl
+    curl -Lo /usr/local/bin/kubectl "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" && \
+    chmod +x /usr/local/bin/kubectl && \
+    # Helm
+    curl -Lo helm.tar.gz "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz" && \
+    tar -xzf helm.tar.gz && \
+    mv linux-amd64/helm /usr/local/bin/helm && \
+    rm -rf helm.tar.gz linux-amd64 && \
+    # Kustomize
+    curl -Lo kustomize.tar.gz "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz" && \
+    tar -xzf kustomize.tar.gz && \
+    mv kustomize /usr/local/bin/kustomize && \
+    rm kustomize.tar.gz && \
+    # JQ
+    curl -Lo /usr/local/bin/jq "https://github.com/stedolan/jq/releases/download/jq-${JQ_VERSION}/jq-linux-amd64" && \
+    chmod +x /usr/local/bin/jq && \
+    # YQ
+    curl -Lo /usr/local/bin/yq "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" && \
+    chmod +x /usr/local/bin/yq && \
+    # TKN
+    curl -Lo tekton.tar.gz "https://github.com/tektoncd/cli/releases/download/v0.41.1/tkn_${TKN_VERSION}_Linux_x86_64.tar.gz" && \
+    tar -xzf tekton.tar.gz && \
+    mv tkn /usr/local/bin/tkn && \
+    rm -rf LICENSE README.md
+
+# Verify installations to ensure the image is built correctly
+RUN kind version && \
+    kubectl version --client && \
+    helm version && \
+    kustomize version && \
+    jq --version && \
+    yq --version && \
+    git version && \
+    tkn version
+
+# Set a default command for interactive use
+CMD ["/bin/bash"]

@@ -1,0 +1,159 @@
+# Copyright 2025 Marcelo Parisi (github.com/feitnomore)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: git-clone
+  namespace: kvm-cicd
+spec:
+  description: Clones a Git repository using alpine/git.
+  params:
+    - name: url
+      description: The Git repository URL to clone.
+      type: string
+    - name: revision
+      description: The Git revision (e.g., branch, tag, commit SHA).
+      type: string
+      default: "main"
+    - name: subdirectory
+      description: >-
+        Relative path within the workspace where the repository should be cloned.
+        If empty, clones to the root of the workspace.
+      type: string
+      default: ""
+    - name: depth
+      description: >-
+        Perform a shallow clone with a history truncated to the specified number of commits.
+        Use '0' for a full clone (default).
+      type: string
+      default: "0"
+    - name: sslVerify
+      description: "Set to 'false' to disable SSL verification for git operations."
+      type: string
+      default: "true"
+    - name: deleteExisting
+      description: "Set to 'true' to delete existing files in the target directory before cloning."
+      type: string
+      default: "true"
+
+  workspaces:
+    - name: source
+      description: The workspace where the Git repository will be cloned.
+
+  steps:
+    - name: clone-with-alpine-git
+      image: alpine/git:latest
+      imagePullPolicy: Always
+      env:
+        - name: PARAM_URL
+          value: $(params.url)
+        - name: PARAM_REVISION
+          value: $(params.revision)
+        - name: PARAM_SUBDIRECTORY
+          value: $(params.subdirectory)
+        - name: PARAM_DEPTH
+          value: $(params.depth)
+        - name: PARAM_SSL_VERIFY
+          value: $(params.sslVerify)
+        - name: PARAM_DELETE_EXISTING
+          value: $(params.deleteExisting)
+        - name: WORKSPACE_OUTPUT_PATH
+          value: $(workspaces.source.path)
+      script: |
+        #!/bin/sh
+
+        echo "--- ALPINE/GIT CLONE SCRIPT START ---"
+        echo "Workspace path is: $WORKSPACE_OUTPUT_PATH"
+        echo "Target subdirectory parameter is: $PARAM_SUBDIRECTORY"
+
+        # Fix permissions
+        echo "Attempting to set permissions on $WORKSPACE_OUTPUT_PATH..."
+        chmod 777 "$WORKSPACE_OUTPUT_PATH" -R
+        echo "Permissions set on $WORKSPACE_OUTPUT_PATH."
+
+        git config --global --add safe.directory /workspace
+        git config --global init.defaultBranch main
+        git config --global advice.detachedHead false
+
+        if [ -n "$PARAM_SUBDIRECTORY" ]; then
+          echo "Subdirectory $PARAM_SUBDIRECTORY will be within the safe /workspace directory."
+        fi
+        echo "Git safe.directory configured for /workspace."
+
+        # Target clone destination
+        CLONE_DIR="$WORKSPACE_OUTPUT_PATH"
+        if [ -n "$PARAM_SUBDIRECTORY" ]; then
+          CLONE_DIR="$WORKSPACE_OUTPUT_PATH/$PARAM_SUBDIRECTORY"
+        fi
+        echo "Final clone directory will be: $CLONE_DIR"
+
+        if [ "$PARAM_DELETE_EXISTING" = "true" ] ; then
+          if [ -d "$CLONE_DIR" ] ; then
+            echo "Cleaning existing files in $CLONE_DIR..."
+            if [ "$CLONE_DIR" = "$WORKSPACE_OUTPUT_PATH" ]; then
+              if [ "$WORKSPACE_OUTPUT_PATH" = "/" ] || [ -z "$WORKSPACE_OUTPUT_PATH" ]; then
+                echo "Error: WORKSPACE_OUTPUT_PATH is empty or root. Aborting cleanup."
+                exit 1
+              fi
+              find "$WORKSPACE_OUTPUT_PATH" -mindepth 1 -maxdepth 1 -exec rm -rf {} \;
+            else
+              rm -rf "$CLONE_DIR"
+              mkdir -p "$CLONE_DIR"
+            fi
+          else
+            echo "Target directory $CLONE_DIR does not exist, creating..."
+            mkdir -p "$CLONE_DIR"
+          fi
+        else
+          if ! [ -d "$CLONE_DIR" ]; then
+            echo "Target directory $CLONE_DIR does not exist (and deleteExisting is false), creating..."
+            mkdir -p "$CLONE_DIR"
+          fi
+        fi
+
+        cd "$CLONE_DIR"
+        echo "Current directory for git operations: $(pwd)"
+
+        if [ "$PARAM_SSL_VERIFY" = "false" ] ; then
+          git config --global http.sslVerify false
+          echo "SSL verification disabled globally for git."
+        fi
+
+        git init
+        git remote add origin "$PARAM_URL"
+
+        if [ "$PARAM_SSL_VERIFY" = "false" ] ; then
+            git config "http.$PARAM_URL.sslVerify" false
+            echo "SSL verification for remote $PARAM_URL specifically disabled."
+        fi
+
+        fetch_args=""
+        if [ "$PARAM_DEPTH" != "0" ] && [ -n "$PARAM_DEPTH" ] ; then
+          fetch_args="--depth $PARAM_DEPTH"
+          echo "Performing shallow clone with depth: $PARAM_DEPTH"
+        else
+          echo "Performing full clone."
+        fi
+
+        echo "Fetching revision '$PARAM_REVISION' from origin..."
+        git fetch $fetch_args origin "$PARAM_REVISION" --tags --force
+
+        echo "Checking out FETCH_HEAD (which should correspond to '$PARAM_REVISION')..."
+        git checkout FETCH_HEAD
+
+        echo "Repository cloned successfully into $(pwd)."
+        echo "Current commit:"
+        git log -1 --oneline
+        echo "--- ALPINE/GIT CLONE SCRIPT END ---"

@@ -1,0 +1,62 @@
+# Copyright 2025 Marcelo Parisi (github.com/feitnomore)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  generateName: ${PRE}build-mnp-image-
+  namespace: mnp-cicd
+  labels:
+    cicd/image: ${IMAGE}
+    cicd/branch: ${BRANCH}
+    cicd/project: ${PROJECT}
+spec:
+  pipelineRef:
+    name: build-mnp-image
+  params:
+    - name: APP_REPO_URL
+      value: "${MNP_CRTL_GIT}"
+    - name: APP_REPO_BRANCH
+      value: "${BRANCH}"
+    - name: app-repo-project
+      value: "${PROJECT}"
+    - name: app-clone-subdir
+      value: "mnp-app-src"
+    - name: IMAGE_REGISTRY
+      value: "${IMAGE_REGISTRY}"
+    - name: CLI_IMAGE_NAME
+      value: "${CLI_IMAGE_NAME}"
+    - name: CLI_IMAGE_TAG
+      value: "${CLI_IMAGE_TAG}"
+    - name: IMAGE_NAME
+      value: "${IMAGE_NAME}"
+    - name: IMAGE_TAG
+      value: "${IMAGE_TAG}"
+      
+  workspaces:
+    - name: shared-source
+      volumeClaimTemplate:
+        spec:
+          accessModes: [ReadWriteOnce]
+          resources: { requests: { storage: 2Gi } }
+          storageClassName: "ceph-rbd-sc"
+    - name: docker-credentials
+      secret:
+        secretName: repository-credentials
+        items:
+          - key: .dockerconfigjson
+            path: config.json
+    - name: shared-output
+      persistentVolumeClaim:
+        claimName: cicd-output

@@ -1,0 +1,40 @@
+# Copyright 2025 Marcelo Parisi (github.com/feitnomore)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: nightly-taskrun-pruner
+  namespace: kvm-cicd
+spec:
+  schedule: "45 05 * * *"
+  timeZone: "America/Sao_Paulo"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: tekton-pruner
+            image: kubevirtmanager/cli-tools:nightly
+            command: ["/usr/local/bin/tkn"]
+            args:
+            - "prune"
+            - "taskruns"
+            - "--all"
+            - "--keep=5"
+            - "--age=2d"
+          restartPolicy: OnFailure

@@ -1,0 +1,67 @@
+# Copyright 2025 Marcelo Parisi (github.com/feitnomore)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: build-container-image 
+  namespace: kvm-cicd
+spec:
+  description: Kaniko task to build and push an image
+  params:
+    - name: IMAGE_REGISTRY
+      description: The registry URL.
+      type: string
+    - name: IMAGE_NAME
+      description: image name.
+      type: string
+    - name: IMAGE_TAG
+      description: image tag.
+      type: string
+    - name: DOCKERFILE_PATH
+      description: Path to the Dockerfile relative to the context.
+      default: "Dockerfile"
+    - name: CONTEXT_SUBDIR
+      description: >-
+        The subdirectory within the source workspace to use as the build context.
+        Defaults to the root of the workspace.
+      type: string
+      default: "."
+    - name: EXTRA_KANIKO_ARGS
+      description: Extra arguments to pass to Kaniko executor (e.g., --build-arg).
+      type: array
+      default:
+        - "--cache=false"
+
+  workspaces:
+    - name: source
+      description: Holds the build context and the Dockerfile.
+    - name: dockerconfig
+      description: Docker credentials
+      optional: true
+
+  steps:
+    - name: build-and-push-image
+      image: gcr.io/kaniko-project/executor:latest
+      imagePullPolicy: Always
+      workingDir: $(workspaces.source.path)
+      env:
+        - name: DOCKER_CONFIG
+          value: $(workspaces.dockerconfig.path)
+      args:
+        - --dockerfile=$(params.CONTEXT_SUBDIR)/$(params.DOCKERFILE_PATH)
+        - --context=dir://$(workspaces.source.path)/$(params.CONTEXT_SUBDIR)
+        - --destination=$(params.IMAGE_REGISTRY)/$(params.IMAGE_NAME):$(params.IMAGE_TAG)
+        - $(params.EXTRA_KANIKO_ARGS)
+
