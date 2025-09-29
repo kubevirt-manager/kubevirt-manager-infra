@@ -15,24 +15,24 @@
 apiVersion: tekton.dev/v1beta1
 kind: PipelineRun
 metadata:
-  generateName: ${PRE}validate-code-
-  namespace: mnp-cicd
+  generateName: ${PRE}validate-kvm-
+  namespace: kvm-cicd
   labels:
     cicd/image: $IMAGE
     cicd/branch: $BRANCH
     cicd/project: $PROJECT
 spec:
   pipelineRef:
-    name: validate-code
+    name: validate-kvm
   params:
     - name: APP_REPO_URL
-      value: "${MNP_CRTL_GIT}"
+      value: "${KVM_CRTL_GIT}"
     - name: APP_REPO_BRANCH
       value: "${BRANCH}"
     - name: app-repo-project
       value: "${PROJECT}"
     - name: app-clone-subdir
-      value: "mnp-app-src"
+      value: "kvm-app-src"
     - name: IMAGE_REGISTRY
       value: "${IMAGE_REGISTRY}"
     - name: CLI_IMAGE_NAME
@@ -43,6 +43,14 @@ spec:
       value: "${IMAGE_NAME}"
     - name: IMAGE_TAG
       value: "${IMAGE_TAG}"
+    - name: NODE_IMAGE_NAME
+      value: "${NODE_IMAGE_NAME}"
+    - name: NODE_IMAGE_TAG
+      value: "${NODE_IMAGE_TAG}"
+    - name: CYPRESS_IMAGE_NAME
+      value: "${CYPRESS_IMAGE_NAME}"
+    - name: CYPRESS_IMAGE_TAG
+      value: "${CYPRESS_IMAGE_TAG}"
 
   workspaces:
     - name: shared-source

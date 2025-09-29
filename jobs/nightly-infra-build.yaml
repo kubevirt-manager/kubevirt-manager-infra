@@ -18,7 +18,7 @@ metadata:
   name: nightly-infra-build
   namespace: kvm-cicd
 spec:
-  schedule: "10 02 * * *"
+  schedule: "22 10 * * *"
   timeZone: "America/Sao_Paulo"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 5
@@ -29,7 +29,7 @@ spec:
         spec:
           containers:
           - name: worker
-            image: kubevirtmanager/cli-tools:nightly
+            image: kubevirtmanager/kvm-cli-tools:nightly
             imagePullPolicy: Always
             env:
             - name: PRE
@@ -39,25 +39,25 @@ spec:
             - name: BRANCH
               value: "main"
             - name: PROJECT
-              value: "mnp-nft-bridge-infra"
+              value: "kubevirt-manager-infra"
             - name: IMAGE_REGISTRY
               value: "kubevirtmanager"
             - name: CLI_IMAGE_NAME
-              value: "cli-tools"
+              value: "kvm-cli-tools"
             - name: CLI_IMAGE_TAG
               value: "nightly"
-            - name: ARTIFACTS_IMAGE_NAME
-              value: "artifacts-tools"
-            - name: ARTIFACTS_IMAGE_TAG
+            - name: CYPRESS_IMAGE_NAME
+              value: "kvm-cypress"
+            - name: CYPRESS_IMAGE_TAG
               value: "nightly"
-            - name: GO_IMAGE_NAME
-              value: "golang"
-            - name: GO_IMAGE_TAG
+            - name: NODE_IMAGE_NAME
+              value: "kvm-node"
+            - name: NODE_IMAGE_TAG
               value: "nightly"
-            - name: MNP_INFRA_GIT
-              value: "https://github.com/kubevirt-manager/mnp-nft-bridge-infra.git"
+            - name: KVM_INFRA_GIT
+              value: "https://github.com/kubevirt-manager/kubevirt-manager-infra.git"
             command:
             - /bin/bash
             - -c
-            - envsubst < /opt/build-infra-image.yaml | kubectl create -f -
+            - envsubst < /opt/build-kvm-infra-image.yaml | kubectl create -f -
           restartPolicy: OnFailure

@@ -23,7 +23,7 @@ metadata:
     cicd/project: ${PROJECT}
 spec:
   pipelineRef:
-    name: build-infra-images
+    name: build-kvm-infra-images
   params:
     - name: INFRA_REPO_URL
       value: "${KVM_INFRA_GIT}"

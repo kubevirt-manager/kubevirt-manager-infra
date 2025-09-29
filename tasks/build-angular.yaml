@@ -1,0 +1,65 @@
+# Copyright 2025 Marcelo Parisi (github.com/feitnomore)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: build-angular
+  namespace: kvm-cicd
+spec:
+  description: Uses a custom Go builder image to run 'make' commands
+  params:
+    - name: IMAGE_REGISTRY
+      description: The registry URL.
+      type: string
+    - name: NODE_IMAGE_NAME
+      description: The NodeJS Image Name.
+      type: string
+    - name: NODE_IMAGE_TAG
+      description: The NodeJS Image Tag.
+      type: string
+    - name: SUBDIRECTORY
+      description: "Subdirectory within the source workspace where the Makefile is located."
+      type: string
+      default: "."
+    - name: pipelinerun-name
+      description: "The name of the current PipelineRun to inspect."
+      type: string
+
+  workspaces:
+    - name: source
+      description: "A workspace containing the source code to be built."
+    - name: artifacts
+      description: "A workspace to store build artifacts."
+      optional: true
+    - name: shared-output
+      description: "Workspace for storing logs and output files."
+
+  steps:
+    - name: ng-build
+      image: $(params.IMAGE_REGISTRY)/$(params.NODE_IMAGE_NAME):$(params.NODE_IMAGE_TAG)
+      imagePullPolicy: Always
+      workingDir: $(workspaces.source.path)/$(params.SUBDIRECTORY)
+      script: |
+        #!/bin/bash
+        set -e
+
+        echo "--- NPM TEST SCRIPT START ---"
+
+        export PIPELINERUN_NAME="$(params.pipelinerun-name)"
+        export OUTPUT_DIR="/workspace/shared-output/${PIPELINERUN_NAME}"
+
+        npm install -g @angular/cli@18.0.3 && ng build
+        
+        echo "--- NPM TEST SCRIPT END ---"

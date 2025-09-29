@@ -15,8 +15,8 @@
 apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
-  name: validate-code
-  namespace: mnp-cicd
+  name: validate-kvm
+  namespace: kvm-cicd
 spec:
   description: Clones an application repository and then runs 'make' to validate.
   params:
@@ -31,10 +31,6 @@ spec:
       description: "Subdirectory within the shared-source workspace to clone the application repo into."
       type: string
       default: "source-code"
-    - name: makefile-subdir-in-app
-      description: "Subdirectory within the cloned application code where the Makefile is located."
-      type: string
-      default: "."
     - name: IMAGE_REGISTRY
       description: The registry URL.
       type: string
@@ -48,6 +44,18 @@ spec:
       description: image name.
       type: string
     - name: IMAGE_TAG
+      description: image tag.
+      type: string
+    - name: NODE_IMAGE_NAME
+      description: image name.
+      type: string
+    - name: NODE_IMAGE_TAG
+      description: image tag.
+      type: string
+    - name: CYPRESS_IMAGE_NAME
+      description: image name.
+      type: string
+    - name: CYPRESS_IMAGE_TAG
       description: image tag.
       type: string
 
@@ -79,34 +87,60 @@ spec:
         - name: source
           workspace: shared-source
 
-    - name: fmt 
+    - name: clone-novnc-repository
       taskRef:
-        name: golang-make
-      runAfter: [clone-app-repository]
+        name: git-clone
       params:
-        - name: MAKE_TARGETS
-          value: "fmt" 
+        - name: url
+          value: "https://github.com/novnc/noVNC.git"
+        - name: revision
+          value: "main"
+        - name: subdirectory
+          value: $(params.app-clone-subdir)/src/assets/
+        - name: deleteExisting
+          value: "true"
+        - name: sslVerify
+          value: "false"
+      workspaces:
+        - name: source
+          workspace: shared-source
+
+    - name: prepare 
+      taskRef:
+        name: npm-prepare
+      runAfter: [clone-novnc-repository]
+      params:
         - name: SUBDIRECTORY
-          value: "$(params.app-clone-subdir)/$(params.makefile-subdir-in-app)"
+          value: "$(params.app-clone-subdir)"
         - name: pipelinerun-name
           value: $(context.pipelineRun.name)
+        - name: IMAGE_REGISTRY
+          value: "$(params.IMAGE_REGISTRY)"
+        - name: NODE_IMAGE_NAME
+          value: "$(params.NODE_IMAGE_NAME)"
+        - name: NODE_IMAGE_TAG
+          value: "$(params.NODE_IMAGE_TAG)"
       workspaces:
         - name: source
           workspace: shared-source
         - name: shared-output
           workspace: shared-output
 
-    - name: lint 
+    - name: build 
       taskRef:
-        name: golang-make
-      runAfter: [clone-app-repository]
+        name: build-angular
+      runAfter: [prepare]
       params:
-        - name: MAKE_TARGETS
-          value: "lint" 
         - name: SUBDIRECTORY
-          value: "$(params.app-clone-subdir)/$(params.makefile-subdir-in-app)"
+          value: "$(params.app-clone-subdir)"
         - name: pipelinerun-name
           value: $(context.pipelineRun.name)
+        - name: IMAGE_REGISTRY
+          value: "$(params.IMAGE_REGISTRY)"
+        - name: NODE_IMAGE_NAME
+          value: "$(params.NODE_IMAGE_NAME)"
+        - name: NODE_IMAGE_TAG
+          value: "$(params.NODE_IMAGE_TAG)"
       workspaces:
         - name: source
           workspace: shared-source
@@ -115,66 +149,19 @@ spec:
 
     - name: test
       taskRef:
-        name: golang-make
-      runAfter: [lint]
+        name: cypress-test
+      runAfter: [build]
       params:
-        - name: MAKE_TARGETS
-          value: "test-verbose"
         - name: SUBDIRECTORY
-          value: "$(params.app-clone-subdir)/$(params.makefile-subdir-in-app)"
+          value: "$(params.app-clone-subdir)"
         - name: pipelinerun-name
           value: $(context.pipelineRun.name)
-      workspaces:
-        - name: source
-          workspace: shared-source
-        - name: shared-output
-          workspace: shared-output
-
-    - name: coverage
-      taskRef:
-        name: golang-make
-      runAfter: [test]
-      params:
-        - name: MAKE_TARGETS
-          value: "coverage-report-html"
-        - name: SUBDIRECTORY
-          value: "$(params.app-clone-subdir)/$(params.makefile-subdir-in-app)"
-        - name: pipelinerun-name
-          value: $(context.pipelineRun.name)
-      workspaces:
-        - name: source
-          workspace: shared-source
-        - name: shared-output
-          workspace: shared-output
-
-    - name: binary
-      taskRef:
-        name: golang-make
-      runAfter: [coverage]
-      params:
-        - name: MAKE_TARGETS
-          value: "all"
-        - name: SUBDIRECTORY
-          value: "$(params.app-clone-subdir)/$(params.makefile-subdir-in-app)"
-        - name: pipelinerun-name
-          value: $(context.pipelineRun.name)
-      workspaces:
-        - name: source
-          workspace: shared-source
-        - name: shared-output
-          workspace: shared-output
-
-    - name: vuln-check
-      taskRef:
-        name: golang-make
-      runAfter: [coverage]
-      params:
-        - name: MAKE_TARGETS
-          value: "vuln-check"
-        - name: SUBDIRECTORY
-          value: "$(params.app-clone-subdir)/$(params.makefile-subdir-in-app)"
-        - name: pipelinerun-name
-          value: $(context.pipelineRun.name)
+        - name: IMAGE_REGISTRY
+          value: "$(params.IMAGE_REGISTRY)"
+        - name: CYPRESS_IMAGE_NAME
+          value: "$(params.CYPRESS_IMAGE_NAME)"
+        - name: CYPRESS_IMAGE_TAG
+          value: "$(params.CYPRESS_IMAGE_TAG)"
       workspaces:
         - name: source
           workspace: shared-source
@@ -184,18 +171,18 @@ spec:
     - name: build-container-image
       taskRef:
         name: build-container-image
-      runAfter: [binary]
+      runAfter: [test]
       params:
         - name: IMAGE_REGISTRY
-          value: "$(params.IMAGE_REGISTRY)"
+          value: $(params.IMAGE_REGISTRY)
         - name: IMAGE_NAME
-          value: "$(params.IMAGE_NAME)"
+          value: $(params.IMAGE_NAME)
         - name: IMAGE_TAG
-          value: "$(params.IMAGE_TAG)"
+          value: $(params.IMAGE_TAG)
         - name: DOCKERFILE_PATH
-          value: ./Dockerfile.ci 
+          value: ./Dockerfile 
         - name: CONTEXT_SUBDIR
-          value: "$(params.app-clone-subdir)/$(params.makefile-subdir-in-app)"
+          value: "$(params.app-clone-subdir)"
       workspaces:
         - name: source
           workspace: shared-source
