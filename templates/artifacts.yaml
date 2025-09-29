@@ -15,7 +15,7 @@
 apiVersion: tekton.dev/v1beta1
 kind: TaskRun
 metadata:
-  namespace: mnp-cicd
+  namespace: kvm-cicd
   generateName: ${PRE}collect-artifacts-run-
 spec:
   taskRef:

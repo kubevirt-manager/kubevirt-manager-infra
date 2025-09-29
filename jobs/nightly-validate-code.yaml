@@ -18,7 +18,7 @@ metadata:
   name: nightly-validate-code
   namespace: kvm-cicd
 spec:
-  schedule: "20 02 * * *"
+  schedule: "30 16 * * *"
   timeZone: "America/Sao_Paulo"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 5
@@ -29,34 +29,40 @@ spec:
         spec:
           containers:
           - name: worker
-            image: kubevirtmanager/cli-tools:nightly
+            image: kubevirtmanager/kvm-cli-tools:nightly
             imagePullPolicy: Always
             env:
             - name: PRE
               value: "nightly-"
-            - name: MNP_CRTL_GIT
-              value: "https://github.com/kubevirt-manager/mnp-nft-bridge.git"
+            - name: KVM_CRTL_GIT
+              value: "https://github.com/kubevirt-manager/kubevirt-manager.git"
             - name: IMAGE
               value: "nightly"
             - name: BRANCH
               value: "main"
             - name: PROJECT
-              value: "mnp-nft-bridge"
-            - name: app-clone-subdir
-              value: "mnp-app-src"
+              value: "kubevirt-manager"
             - name: IMAGE_REGISTRY
               value: "kubevirtmanager"
             - name: CLI_IMAGE_NAME
-              value: "cli-tools"
+              value: "kvm-cli-tools"
             - name: CLI_IMAGE_TAG
               value: "nightly"
+            - name: CYPRESS_IMAGE_NAME
+              value: "kvm-cypress"
+            - name: CYPRESS_IMAGE_TAG
+              value: "nightly"
+            - name: NODE_IMAGE_NAME
+              value: "kvm-node"
+            - name: NODE_IMAGE_TAG
+              value: "nightly"
             - name: IMAGE_NAME
-              value: "mnp-nft-bridge"
+              value: "kubevirt-manager"
             - name: IMAGE_TAG
               value: "nightly"
             command:
             - /bin/bash
             - -c
-            - envsubst < /opt/validate-code.yaml | kubectl create -f -
+            - envsubst < /opt/validate-kvm.yaml | kubectl create -f -
           restartPolicy: OnFailure
 

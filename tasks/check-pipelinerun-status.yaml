@@ -86,7 +86,7 @@ spec:
         export CLI_IMAGE_NAME="$(params.CLI_IMAGE_NAME)"
         export CLI_IMAGE_TAG="$(params.CLI_IMAGE_TAG)"
 
-        # envsubst < /opt/artifacts.yaml | kubectl create -f - 2>&1 > /dev/null
+        envsubst < /opt/artifacts.yaml | kubectl create -f - 2>&1 > /dev/null
 
         # Exit according to the code
         echo "===================================="
