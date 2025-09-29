@@ -15,18 +15,18 @@
 apiVersion: tekton.dev/v1beta1
 kind: PipelineRun
 metadata:
-  generateName: ${PRE}build-mnp-image-
-  namespace: mnp-cicd
+  generateName: ${PRE}build-kvm-image-
+  namespace: kvm-cicd
   labels:
     cicd/image: ${IMAGE}
     cicd/branch: ${BRANCH}
     cicd/project: ${PROJECT}
 spec:
   pipelineRef:
-    name: build-mnp-image
+    name: build-kvm-image
   params:
     - name: APP_REPO_URL
-      value: "${MNP_CRTL_GIT}"
+      value: "${KVM_CRTL_GIT}"
     - name: APP_REPO_BRANCH
       value: "${BRANCH}"
     - name: app-repo-project
@@ -35,14 +35,14 @@ spec:
       value: "mnp-app-src"
     - name: IMAGE_REGISTRY
       value: "${IMAGE_REGISTRY}"
-    - name: CLI_IMAGE_NAME
-      value: "${CLI_IMAGE_NAME}"
-    - name: CLI_IMAGE_TAG
-      value: "${CLI_IMAGE_TAG}"
     - name: IMAGE_NAME
       value: "${IMAGE_NAME}"
     - name: IMAGE_TAG
       value: "${IMAGE_TAG}"
+    - name: CLI_IMAGE_NAME
+      value: "${CLI_IMAGE_NAME}"
+    - name: CLI_IMAGE_TAG
+      value: "${CLI_IMAGE_TAG}"
       
   workspaces:
     - name: shared-source

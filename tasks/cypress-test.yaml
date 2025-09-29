@@ -15,15 +15,20 @@
 apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
-  name: npm-test
-  namespace: mnp-cicd
+  name: cypress-test
+  namespace: kvm-cicd
 spec:
   description: Uses a custom Go builder image to run 'make' commands
   params:
-    - name: MAKE_TARGETS
-      description: "The make target(s) to execute (e.g., 'build', 'test all')."
+    - name: IMAGE_REGISTRY
+      description: The registry URL.
       type: string
-      default: "build"
+    - name: CYPRESS_IMAGE_NAME
+      description: The Cypress Image Name.
+      type: string
+    - name: CYPRESS_IMAGE_TAG
+      description: The NodeJS Image Tag.
+      type: string
     - name: SUBDIRECTORY
       description: "Subdirectory within the source workspace where the Makefile is located."
       type: string
@@ -42,8 +47,8 @@ spec:
       description: "Workspace for storing logs and output files."
 
   steps:
-    - name: run-npm-test
-      image: registry.wifi.feitoza.com.br/docker-repo/golang:latest
+    - name: test
+      image: $(params.IMAGE_REGISTRY)/$(params.CYPRESS_IMAGE_NAME):$(params.CYPRESS_IMAGE_TAG)
       imagePullPolicy: Always
       workingDir: $(workspaces.source.path)/$(params.SUBDIRECTORY)
       script: |
@@ -52,13 +57,11 @@ spec:
 
         echo "--- NPM TEST SCRIPT START ---"
 
-        export MAKE_TARGETS="$(params.MAKE_TARGETS)"
         export PIPELINERUN_NAME="$(params.pipelinerun-name)"
         export OUTPUT_DIR="/workspace/shared-output/${PIPELINERUN_NAME}"
 
-        npm run clean
-        npm install -g @angular/cli@18.0.3
-        npm install
-        npm run test
-        npm run clean
+        npm run test-coverage
+        
         echo "--- NPM TEST SCRIPT END ---"
+
+

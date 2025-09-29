@@ -16,7 +16,7 @@ apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
   name: build-kvm-infra-images
-  namespace: mnp-cicd
+  namespace: kvm-cicd
 spec:
   description: Clones the infra repo, then builds and pushes a Docker images for Cypress and Node
   params:

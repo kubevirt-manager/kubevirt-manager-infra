@@ -16,7 +16,7 @@ apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
   name: build-kvm-image
-  namespace: mnp-cicd
+  namespace: kvm-cicd
 spec:
   description: Clones application repository and then runs a series of 'make' using a custom Go builder.
   params:
@@ -61,7 +61,7 @@ spec:
       description: "Workspace for storing logs and output files."
 
   tasks:
-    - name: clone-app-repository
+    - name: git-clone
       taskRef:
         name: git-clone
       params:
@@ -79,61 +79,10 @@ spec:
         - name: source
           workspace: shared-source
 
-    - name: fmt 
-      taskRef:
-        name: golang-make
-      runAfter: [clone-app-repository]
-      params:
-        - name: MAKE_TARGETS
-          value: "fmt" 
-        - name: SUBDIRECTORY
-          value: "$(params.app-clone-subdir)/$(params.makefile-subdir-in-app)"
-        - name: pipelinerun-name
-          value: $(context.pipelineRun.name)
-      workspaces:
-        - name: source
-          workspace: shared-source
-        - name: shared-output
-          workspace: shared-output
-
-    - name: lint 
-      taskRef:
-        name: golang-make
-      runAfter: [clone-app-repository]
-      params:
-        - name: MAKE_TARGETS
-          value: "fmt" 
-        - name: SUBDIRECTORY
-          value: "$(params.app-clone-subdir)/$(params.makefile-subdir-in-app)"
-        - name: pipelinerun-name
-          value: $(context.pipelineRun.name)
-      workspaces:
-        - name: source
-          workspace: shared-source
-        - name: shared-output
-          workspace: shared-output
-
-    - name: binary
-      taskRef:
-        name: golang-make
-      runAfter: [lint]
-      params:
-        - name: MAKE_TARGETS
-          value: "all"
-        - name: SUBDIRECTORY
-          value: "$(params.app-clone-subdir)/$(params.makefile-subdir-in-app)"
-        - name: pipelinerun-name
-          value: $(context.pipelineRun.name)
-      workspaces:
-        - name: source
-          workspace: shared-source
-        - name: shared-output
-          workspace: shared-output
-
     - name: build-container-image
       taskRef:
         name: build-container-image
-      runAfter: [binary]
+      runAfter: [git-clone]
       params:
         - name: IMAGE_REGISTRY
           value: $(params.IMAGE_REGISTRY)
@@ -142,7 +91,7 @@ spec:
         - name: IMAGE_TAG
           value: $(params.IMAGE_TAG)
         - name: DOCKERFILE_PATH
-          value: ./Dockerfile.ci 
+          value: ./Dockerfile 
         - name: CONTEXT_SUBDIR
           value: "$(params.app-clone-subdir)/$(params.makefile-subdir-in-app)"
       workspaces:
