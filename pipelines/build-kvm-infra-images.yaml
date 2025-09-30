@@ -41,6 +41,12 @@ spec:
     - name: NODE_IMAGE_TAG
       description: image tag.
       type: string
+    - name: DOCS_IMAGE_NAME
+      description: image name.
+      type: string
+    - name: DOCS_IMAGE_TAG
+      description: image tag.
+      type: string
     - name: INFRA_REPO_URL
       description: "URL of the infrastructure Git repository."
     - name: INFRA_REPO_BRANCH
