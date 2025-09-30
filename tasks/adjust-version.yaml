@@ -1,0 +1,162 @@
+# Copyright 2025 Marcelo Parisi (github.com/feitnomore)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: adjust-kvm-version
+  namespace: kvm-cicd
+spec:
+  description: Adjust artifact version on repo
+  params:
+    - name: pipelinerun-name
+      description: "The name of the current PipelineRun to inspect."
+      type: string
+    - name: SUBDIRECTORY
+      description: >-
+        Relative path within the workspace where the repository should be cloned.
+        If empty, clones to the root of the workspace.
+      type: string
+      default: ""
+    - name: OLD_VERSION
+      description: Actual version.
+      type: string
+    - name: NEW_VERSION
+      description: New version.
+      type: string
+    - name: IMAGE_REGISTRY
+      description: The registry URL.
+      type: string
+    - name: CLI_IMAGE_NAME
+      description: image name.
+      type: string
+    - name: CLI_IMAGE_TAG
+      description: image tag.
+      type: string
+
+  workspaces:
+    - name: source
+      description: The workspace where the Git repository will be cloned.
+    - name: shared-output
+      description: "Workspace for storing logs and output files."
+
+  steps:
+    - name: adjust-version
+      image: $(params.IMAGE_REGISTRY)/$(params.CLI_IMAGE_NAME):$(params.CLI_IMAGE_TAG)
+      env:
+        - name: OLD_VERSION
+          value: $(params.OLD_VERSION)
+        - name: NEW_VERSION
+          value: $(params.NEW_VERSION)
+      workingDir: $(workspaces.source.path)/$(params.SUBDIRECTORY)
+      script: |
+        #!/bin/bash
+        set -e
+
+        # Parameters
+        PIPELINERUN_NAME="$(params.pipelinerun-name)"
+        OUTPUT_DIR="/workspace/shared-output/${PIPELINERUN_NAME}"
+
+        echo "--- Adjusting source code version ---"
+
+        # Create output directory
+        mkdir -p "${OUTPUT_DIR}"
+
+        sed -i "s|\"version\": \"${OLD_VERSION}\"|\"version\": \"${NEW_VERSION}\"|g" package.json
+        sed -i "s|${OLD_VERSION}|${NEW_VERSION}|g" Dockerfile
+        sed -i "s|${OLD_VERSION}|${NEW_VERSION}|g" src/app/components/main-footer/main-footer.component.html
+
+        
+        if [ ${NEW_VERSION} != "dev" ]
+        then
+          yq -i "select(.kind == \"Namespace\").metadata.labels.kubevirt-manager.io/version = \"v${NEW_VERSION}\"" kubernetes/bundled.yaml
+          yq -i "select(.kind == \"Namespace\").metadata.labels.kubevirt-manager.io/version = \"v${NEW_VERSION}\"" kubernetes/ns.yaml
+
+          yq -i "select(.kind == \"ServiceAccount\").metadata.labels.kubevirt-manager.io/version = \"v${NEW_VERSION}\"" kubernetes/bundled.yaml
+          yq -i "select(.kind == \"ServiceAccount\").metadata.labels.kubevirt-manager.io/version = \"v${NEW_VERSION}\"" kubernetes/rbac.yaml
+
+          yq -i "select(.kind == \"ClusterRoleBinding\").metadata.labels.kubevirt-manager.io/version = \"v${NEW_VERSION}\"" kubernetes/bundled.yaml
+          yq -i "select(.kind == \"ClusterRoleBinding\").metadata.labels.kubevirt-manager.io/version = \"v${NEW_VERSION}\"" kubernetes/rbac.yaml
+
+          yq -i "select(.kind == \"PriorityClass\").metadata.labels.kubevirt-manager.io/version = \"v${NEW_VERSION}\"" kubernetes/bundled.yaml
+          yq -i "select(.kind == \"PriorityClass\").metadata.labels.kubevirt-manager.io/version = \"v${NEW_VERSION}\"" kubernetes/pc.yaml
+
+          yq -i "select(.kind == \"Deployment\").metadata.labels.kubevirt-manager.io/version = \"v${NEW_VERSION}\"" kubernetes/bundled.yaml
+          yq -i "select(.kind == \"Deployment\").spec.template.spec.containers[0].image = \"kubevirt-manager/kubevirt-manager:v${NEW_VERSION}\"" kubernetes/bundled.yaml
+          yq -i "select(.kind == \"Deployment\").spec.template.metadata.labels.kubevirt-manager.io/version = \"v${NEW_VERSION}\"" kubernetes/bundled.yaml
+
+          yq -i "select(.kind == \"Deployment\").metadata.labels.kubevirt-manager.io/version = \"v${NEW_VERSION}\"" kubernetes/deployment.yaml
+          yq -i "select(.kind == \"Deployment\").spec.template.spec.containers[0].image = \"kubevirt-manager/kubevirt-manager:v${NEW_VERSION}\"" kubernetes/deployment.yaml
+          yq -i "select(.kind == \"Deployment\").spec.template.metadata.labels.kubevirt-manager.io/version = \"v${NEW_VERSION}\"" kubernetes/deployment.yaml
+
+          yq -i "select(.kind == \"Service\").metadata.labels.kubevirt-manager.io/version = \"v${NEW_VERSION}\"" kubernetes/bundled.yaml
+          yq -i "select(.kind == \"Service\").metadata.labels.kubevirt-manager.io/version = \"v${NEW_VERSION}\"" kubernetes/service.yaml
+
+          
+          yq -i "select(.kind == \"Service\").metadata.labels.kubevirt-manager.io/version = \"v${NEW_VERSION}\"" kubernetes/auth-basic-configmap.yaml
+          yq -i "select(.kind == \"Service\").metadata.labels.kubevirt-manager.io/version = \"v${NEW_VERSION}\"" kubernetes/auth-basic-secret.yaml
+          yq -i "select(.kind == \"Service\").metadata.labels.kubevirt-manager.io/version = \"v${NEW_VERSION}\"" kubernetes/auth-oauth2-configmap.yaml
+          yq -i "select(.kind == \"Service\").metadata.labels.kubevirt-manager.io/version = \"v${NEW_VERSION}\"" kubernetes/ingress.yaml
+          yq -i "select(.kind == \"Service\").metadata.labels.kubevirt-manager.io/version = \"v${NEW_VERSION}\"" kubernetes/oauth-config.yaml
+          yq -i "select(.kind == \"Service\").metadata.labels.kubevirt-manager.io/version = \"v${NEW_VERSION}\"" kubernetes/prometheus-config.yaml
+
+          cp kubernetes/bundled.yaml ${OUTPUT_DIR}/bundled-v${NEW_VERSION}.yaml
+          cp kubernetes/ns.yaml ${OUTPUT_DIR}/ns-v${NEW_VERSION}.yaml
+          cp kubernetes/rbac.yaml ${OUTPUT_DIR}/rbac-v${NEW_VERSION}.yaml
+          cp kubernetes/pc.yaml ${OUTPUT_DIR}/pc-v${NEW_VERSION}.yaml
+          cp kubernetes/deployment.yaml ${OUTPUT_DIR}/deployment-v${NEW_VERSION}.yaml
+          cp kubernetes/service.yaml ${OUTPUT_DIR}/service-v${NEW_VERSION}.yaml
+          cp kubernetes/auth-basic-configmap.yaml ${OUTPUT_DIR}/auth-basic-configmap-v${NEW_VERSION}.yaml
+          cp kubernetes/auth-basic-secret.yaml ${OUTPUT_DIR}/auth-basic-secret-v${NEW_VERSION}.yaml
+          cp kubernetes/auth-oauth2-configmap.yaml ${OUTPUT_DIR}/auth-oauth2-configmap-v${NEW_VERSION}.yaml
+          cp kubernetes/ingress.yaml ${OUTPUT_DIR}/ingress-v${NEW_VERSION}.yaml
+          cp kubernetes/oauth-config.yaml ${OUTPUT_DIR}/oauth-config-v${NEW_VERSION}.yaml
+          cp kubernetes/prometheus-config.yaml ${OUTPUT_DIR}/prometheus-config-v${NEW_VERSION}.yaml
+          cp kubernetes/crd.yaml ${OUTPUT_DIR}/crd-v${NEW_VERSION}.yaml
+          cp kubernetes/servicemonitor.yaml ${OUTPUT_DIR}/servicemonitor-v${NEW_VERSION}.yaml
+        else
+          yq -i "select(.kind == \"Namespace\").metadata.labels.kubevirt-manager.io/version = \"nightly\"" kubernetes/bundled.yaml
+          yq -i "select(.kind == \"Namespace\").metadata.labels.kubevirt-manager.io/version = \"nightly\"" kubernetes/ns.yaml
+
+          yq -i "select(.kind == \"ServiceAccount\").metadata.labels.kubevirt-manager.io/version = \"nightly\"" kubernetes/bundled.yaml
+          yq -i "select(.kind == \"ServiceAccount\").metadata.labels.kubevirt-manager.io/version = \"nightly\"" kubernetes/rbac.yaml
+
+          yq -i "select(.kind == \"ClusterRoleBinding\").metadata.labels.kubevirt-manager.io/version = \"nightly\"" kubernetes/bundled.yaml
+          yq -i "select(.kind == \"ClusterRoleBinding\").metadata.labels.kubevirt-manager.io/version = \"nightly\"" kubernetes/rbac.yaml
+
+          yq -i "select(.kind == \"PriorityClass\").metadata.labels.kubevirt-manager.io/version = \"nightly\"" kubernetes/bundled.yaml
+          yq -i "select(.kind == \"PriorityClass\").metadata.labels.kubevirt-manager.io/version = \"nightly\"" kubernetes/pc.yaml
+
+          yq -i "select(.kind == \"Deployment\").metadata.labels.kubevirt-manager.io/version = \"nightly\"" kubernetes/bundled.yaml
+          yq -i "select(.kind == \"Deployment\").spec.template.spec.containers[0].image = \"kubevirt-manager/kubevirt-manager:nightly\"" kubernetes/bundled.yaml
+          yq -i "select(.kind == \"Deployment\").spec.template.metadata.labels.kubevirt-manager.io/version = \"nightly\"" kubernetes/bundled.yaml
+
+          yq -i "select(.kind == \"Deployment\").metadata.labels.kubevirt-manager.io/version = \"nightly\"" kubernetes/deployment.yaml
+          yq -i "select(.kind == \"Deployment\").spec.template.spec.containers[0].image = \"kubevirt-manager/kubevirt-manager:nightly\"" kubernetes/deployment.yaml
+          yq -i "select(.kind == \"Deployment\").spec.template.metadata.labels.kubevirt-manager.io/version = \"nightly\"" kubernetes/deployment.yaml
+
+          yq -i "select(.kind == \"Service\").metadata.labels.kubevirt-manager.io/version = \"nightly\"" kubernetes/bundled.yaml
+          yq -i "select(.kind == \"Service\").metadata.labels.kubevirt-manager.io/version = \"nightly\"" kubernetes/service.yaml
+
+          
+          yq -i "select(.kind == \"Service\").metadata.labels.kubevirt-manager.io/version = \"nightly\"" kubernetes/auth-basic-configmap.yaml
+          yq -i "select(.kind == \"Service\").metadata.labels.kubevirt-manager.io/version = \"nightly\"" kubernetes/auth-basic-secret.yaml
+          yq -i "select(.kind == \"Service\").metadata.labels.kubevirt-manager.io/version = \"nightly\"" kubernetes/auth-oauth2-configmap.yaml
+          yq -i "select(.kind == \"Service\").metadata.labels.kubevirt-manager.io/version = \"nightly\"" kubernetes/ingress.yaml
+          yq -i "select(.kind == \"Service\").metadata.labels.kubevirt-manager.io/version = \"nightly\"" kubernetes/oauth-config.yaml
+          yq -i "select(.kind == \"Service\").metadata.labels.kubevirt-manager.io/version = \"nightly\"" kubernetes/prometheus-config.yaml
+        fi
+
+        
+

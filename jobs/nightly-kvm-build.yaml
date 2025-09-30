@@ -18,7 +18,7 @@ metadata:
   name: nightly-kvm-build
   namespace: kvm-cicd
 spec:
-  schedule: "17 11 * * *"
+  schedule: "30 02 * * *"
   timeZone: "America/Sao_Paulo"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 5
