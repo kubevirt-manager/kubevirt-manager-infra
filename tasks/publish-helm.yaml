@@ -33,6 +33,7 @@ spec:
 
     - name: helm-publish
       image: alpine/helm:latest
+      imagePullPolicy: Always
       script: |
         #!/usr/bin/env sh
         cd $(workspaces.source.path)

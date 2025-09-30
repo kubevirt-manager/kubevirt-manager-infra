@@ -29,7 +29,7 @@ spec:
         spec:
           containers:
           - name: tekton-pruner
-            image: kubevirtmanager/cli-tools:nightly
+            image: kubevirtmanager/kvm-cli-tools:nightly
             command: ["/usr/local/bin/tkn"]
             args:
             - "prune"

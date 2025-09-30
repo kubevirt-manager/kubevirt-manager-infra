@@ -15,52 +15,53 @@
 apiVersion: tekton.dev/v1beta1
 kind: PipelineRun
 metadata:
-  generateName: ${PRE}build-kvm-infra-image-
+  generateName: ${PRE}validate-kvm-
   namespace: kvm-cicd
   labels:
-    cicd/image: ${IMAGE}
-    cicd/branch: ${BRANCH}
-    cicd/project: ${PROJECT}
+    cicd/image: $IMAGE
+    cicd/branch: $BRANCH
+    cicd/project: $PROJECT
 spec:
   pipelineRef:
-    name: build-kvm-infra-images
+    name: validate-kvm
   params:
-    - name: INFRA_REPO_URL
-      value: "${KVM_INFRA_GIT}"
-    - name: infra-repo-project
-      value: "${PROJECT}"
-    - name: INFRA_REPO_BRANCH
+    - name: APP_REPO_URL
+      value: "${KVM_CRTL_GIT}"
+    - name: APP_REPO_BRANCH
       value: "${BRANCH}"
-    - name: infra-repo-clone-subdir
+    - name: app-repo-project
       value: "${PROJECT}"
+    - name: app-clone-subdir
+      value: "kvm-app-src"
     - name: IMAGE_REGISTRY
       value: "${IMAGE_REGISTRY}"
     - name: CLI_IMAGE_NAME
       value: "${CLI_IMAGE_NAME}"
     - name: CLI_IMAGE_TAG
       value: "${CLI_IMAGE_TAG}"
-    - name: CYPRESS_IMAGE_NAME
-      value: "${CYPRESS_IMAGE_NAME}"
-    - name: CYPRESS_IMAGE_TAG
-      value: "${CYPRESS_IMAGE_TAG}"
+    - name: IMAGE_NAME
+      value: "${IMAGE_NAME}"
+    - name: IMAGE_TAG
+      value: "${IMAGE_TAG}"
     - name: NODE_IMAGE_NAME
       value: "${NODE_IMAGE_NAME}"
     - name: NODE_IMAGE_TAG
       value: "${NODE_IMAGE_TAG}"
-    - name: DOCS_IMAGE_NAME
-      value: "${DOCS_IMAGE_NAME}"
-    - name: DOCS_IMAGE_TAG
-      value: "${DOCS_IMAGE_TAG}"
+    - name: CYPRESS_IMAGE_NAME
+      value: "${CYPRESS_IMAGE_NAME}"
+    - name: CYPRESS_IMAGE_TAG
+      value: "${CYPRESS_IMAGE_TAG}"
+    - name: OLD_VERSION
+      value: "${OLD_VERSION}"
+    - name: NEW_VERSION
+      value: "${NEW_VERSION}"
 
   workspaces:
-    - name: shared-workspace
+    - name: shared-source
       volumeClaimTemplate:
         spec:
-          accessModes:
-            - ReadWriteOnce
-          resources:
-            requests:
-              storage: 2Gi
+          accessModes: [ReadWriteOnce]
+          resources: { requests: { storage: 2Gi } }
           storageClassName: "ceph-rbd-sc"
     - name: docker-credentials
       secret:
