@@ -61,6 +61,12 @@ spec:
         export OUTPUT_DIR="/workspace/shared-output/${PIPELINERUN_NAME}"
 
         npm run test-coverage
+
+        mkdir -p ${OUTPUT_DIR}/coverage
+        echo "----- SAVING COVERAGE ------"
+        cd coverage/kubevirtmgr-webui/
+        cp -R . ${OUTPUT_DIR}/coverage/
+        cd ../../
         
         echo "--- NPM TEST SCRIPT END ---"
 
