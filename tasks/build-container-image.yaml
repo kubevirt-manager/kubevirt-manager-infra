@@ -38,11 +38,6 @@ spec:
         Defaults to the root of the workspace.
       type: string
       default: "."
-    - name: EXTRA_KANIKO_ARGS
-      description: Extra arguments to pass to Kaniko executor (e.g., --build-arg).
-      type: array
-      default:
-        - "--cache=false"
 
   workspaces:
     - name: source
@@ -51,17 +46,51 @@ spec:
       description: Docker credentials
       optional: true
 
+  volumes:
+    - name: varlibcontainers
+      emptyDir: {}
+
   steps:
-    - name: build-and-push-image
-      image: gcr.io/kaniko-project/executor:latest
-      imagePullPolicy: Always
+    - name: build
+      image: quay.io/buildah/stable:latest
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/bin/bash
+        set -e
+        
+        BUILD_CONTEXT=$(params.CONTEXT_SUBDIR)
+        DOCKERFILE_PATH=$(params.CONTEXT_SUBDIR)/$(params.DOCKERFILE_PATH)
+        IMAGE_NAME_TAG=$(params.IMAGE_REGISTRY)/$(params.IMAGE_NAME):$(params.IMAGE_TAG)
+        
+        buildah --storage-driver=vfs bud \
+          --timestamp=0 --format=docker \
+          --tls-verify=false --no-cache \
+          -f ${DOCKERFILE_PATH} -t ${IMAGE_NAME_TAG} ${BUILD_CONTEXT}
+          
+      volumeMounts:
+      - name: varlibcontainers
+        mountPath: /var/lib/containers
+
+      securityContext:
+        privileged: true # Necessário para rodar o Buildah dentro de um contêiner
+
+    - name: push
+      image: quay.io/buildah/stable:latest
       workingDir: $(workspaces.source.path)
       env:
         - name: DOCKER_CONFIG
           value: $(workspaces.dockerconfig.path)
-      args:
-        - --dockerfile=$(params.CONTEXT_SUBDIR)/$(params.DOCKERFILE_PATH)
-        - --context=dir://$(workspaces.source.path)/$(params.CONTEXT_SUBDIR)
-        - --destination=$(params.IMAGE_REGISTRY)/$(params.IMAGE_NAME):$(params.IMAGE_TAG)
-        - $(params.EXTRA_KANIKO_ARGS)
-
+      script: |
+        #!/bin/bash
+        set -e
+        
+        IMAGE_NAME_TAG=$(params.IMAGE_REGISTRY)/$(params.IMAGE_NAME):$(params.IMAGE_TAG)
+        
+        buildah --storage-driver=vfs push \
+          --tls-verify=false \
+          --digestfile $(workspaces.source.path)/image-digest ${IMAGE_NAME_TAG} \
+          docker://${IMAGE_NAME_TAG}
+          
+      volumeMounts:
+      - name: varlibcontainers
+        mountPath: /var/lib/containers

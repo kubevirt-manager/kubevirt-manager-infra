@@ -78,7 +78,7 @@ spec:
         sed -i "s|${OLD_VERSION}|${NEW_VERSION}|g" src/app/components/main-footer/main-footer.component.html
 
         
-        if [ ${NEW_VERSION} != "dev" ]
+        if [ ${NEW_VERSION} != "nightly" ]
         then
           yq -i "select(.kind == \"Namespace\").metadata.labels.kubevirt-manager.io/version = \"v${NEW_VERSION}\"" kubernetes/bundled.yaml
           yq -i "select(.kind == \"Namespace\").metadata.labels.kubevirt-manager.io/version = \"v${NEW_VERSION}\"" kubernetes/ns.yaml
