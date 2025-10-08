@@ -145,7 +145,7 @@ spec:
         - name: dockerconfig
           workspace: docker-credentials
 
-    - name: build-docks
+    - name: build-docs
       taskRef:
         name: build-container-image
       runAfter: [git-clone]
