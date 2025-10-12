@@ -109,7 +109,7 @@ spec:
       runAfter: [build-cli-tools]
       params:
         - name: DURATION
-          value: "120"
+          value: "30"
 
     - name: build-cypress
       taskRef:
@@ -138,7 +138,7 @@ spec:
       runAfter: [build-cypress]
       params:
         - name: DURATION
-          value: "120"
+          value: "30"
 
     - name: build-node
       taskRef:
@@ -167,7 +167,7 @@ spec:
       runAfter: [build-node]
       params:
         - name: DURATION
-          value: "120"
+          value: "30"
 
     - name: build-docs
       taskRef:
