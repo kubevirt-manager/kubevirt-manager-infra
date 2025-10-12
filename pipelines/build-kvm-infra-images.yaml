@@ -108,7 +108,7 @@ spec:
         name: wait
       runAfter: [build-cli-tools]
       params:
-        - name: duration
+        - name: DURATION
           value: "30"
 
     - name: build-cypress
@@ -137,7 +137,7 @@ spec:
         name: wait
       runAfter: [build-cypress]
       params:
-        - name: duration
+        - name: DURATION
           value: "30"
 
     - name: build-node
@@ -166,7 +166,7 @@ spec:
         name: wait
       runAfter: [build-node]
       params:
-        - name: duration
+        - name: DURATION
           value: "30"
 
     - name: build-docs

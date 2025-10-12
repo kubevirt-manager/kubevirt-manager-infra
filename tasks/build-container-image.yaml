@@ -84,16 +84,35 @@ spec:
           value: $(workspaces.dockerconfig.path)
       script: |
         #!/bin/bash
-        set -e
 
         echo "--- PUSH CONTAINER IMAGE ---"
+
+        MAX_RETRIES=3
+        DELAY_SECONDS=30
+        RETRY_COUNT=0
         
         IMAGE_NAME_TAG=$(params.IMAGE_REGISTRY)/$(params.IMAGE_NAME):$(params.IMAGE_TAG)
         
-        buildah --storage-driver=vfs push \
-          --tls-verify=false \
-          --digestfile $(workspaces.source.path)/image-digest ${IMAGE_NAME_TAG} \
-          docker://${IMAGE_NAME_TAG}
+        while [ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]; do
+
+          echo "--- Attempt $((RETRY_COUNT + 1)) / ${MAX_RETRIES} ---"
+
+          buildah --storage-driver=vfs push \
+            --tls-verify=false \
+            --digestfile $(workspaces.source.path)/image-digest ${IMAGE_NAME_TAG} \
+            docker://${IMAGE_NAME_TAG}
+
+          if [ $? -eq 0 ]; then
+            exit 0
+          else
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            
+            if [ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]; then
+              echo "Waiting ${DELAY_SECONDS} seconds..."
+              sleep ${DELAY_SECONDS}
+            fi
+          fi
+        done
           
       volumeMounts:
       - name: varlibcontainers
