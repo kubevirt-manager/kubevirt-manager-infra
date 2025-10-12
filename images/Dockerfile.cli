@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Use a stable Ubuntu LTS release as the base
-FROM ubuntu:22.04
+FROM docker.io/ubuntu:22.04
 
 # Set non-interactive frontend for apt-get to prevent it from hanging
 ENV DEBIAN_FRONTEND=noninteractive
@@ -88,7 +88,8 @@ RUN curl -Lo /usr/local/bin/kind "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/ki
     curl -Lo tekton.tar.gz "https://github.com/tektoncd/cli/releases/download/v0.41.1/tkn_${TKN_VERSION}_Linux_x86_64.tar.gz" && \
     tar -xzf tekton.tar.gz && \
     mv tkn /usr/local/bin/tkn && \
-    rm -rf LICENSE README.md
+    rm -rf LICENSE README.md && \
+    rm -rf tekton.tar.gz
 
 # Verify installations to ensure the image is built correctly
 RUN kind version && \

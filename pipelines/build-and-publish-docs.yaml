@@ -15,10 +15,10 @@
 apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
-  name: build-kvm-image
+  name: build-and-publish-docs
   namespace: kvm-cicd
 spec:
-  description: Clones application repository and builds kubevirt-manager image.
+  description: Clones docs repository run mkdocs and publish.
   params:
     - name: IMAGE_REGISTRY
       description: The registry URL.
@@ -29,11 +29,11 @@ spec:
     - name: CLI_IMAGE_TAG
       description: image tag.
       type: string
-    - name: IMAGE_NAME
-      description: image name.
+    - name: DOCS_IMAGE_NAME
+      description: The Mkdocs Image Name.
       type: string
-    - name: IMAGE_TAG
-      description: image tag.
+    - name: DOCS_IMAGE_TAG
+      description: The Mkdocs Image Tag.
       type: string
     - name: APP_REPO_URL
       description: "URL of the application Git repository."
@@ -54,9 +54,6 @@ spec:
   workspaces:
     - name: shared-source
       description: "Workspace for the cloned application source code."
-    - name: docker-credentials
-      description: "Docker credential"
-      optional: true
     - name: shared-output
       description: "Workspace for storing logs and output files."
 
@@ -79,26 +76,45 @@ spec:
         - name: source
           workspace: shared-source
 
-    - name: build-container-image
+    - name: mkdocs-build
       taskRef:
-        name: build-container-image
+        name: build-docs
       runAfter: [git-clone]
       params:
         - name: IMAGE_REGISTRY
           value: $(params.IMAGE_REGISTRY)
-        - name: IMAGE_NAME
-          value: $(params.IMAGE_NAME)
-        - name: IMAGE_TAG
-          value: $(params.IMAGE_TAG)
-        - name: DOCKERFILE_PATH
-          value: ./Dockerfile 
+        - name: DOCS_IMAGE_NAME
+          value: $(params.DOCS_IMAGE_NAME)
+        - name: DOCS_IMAGE_TAG
+          value: $(params.DOCS_IMAGE_TAG)
         - name: CONTEXT_SUBDIR
           value: "$(params.app-clone-subdir)/$(params.makefile-subdir-in-app)"
+        - name: pipelinerun-name
+          value: $(context.pipelineRun.name)
       workspaces:
         - name: source
           workspace: shared-source
-        - name: dockerconfig
-          workspace: docker-credentials
+        - name: shared-output
+          workspace: shared-output
+
+    - name: publish-docs
+      taskRef:
+        name: publish-docs
+      runAfter: [mkdocs-build]
+      params:
+        - name: IMAGE_REGISTRY
+          value: $(params.IMAGE_REGISTRY)
+        - name: CLI_IMAGE_NAME
+          value: $(params.CLI_IMAGE_NAME)
+        - name: CLI_IMAGE_TAG
+          value: $(params.CLI_IMAGE_TAG)
+        - name: pipelinerun-name
+          value: $(context.pipelineRun.name)
+      workspaces:
+        - name: source
+          workspace: shared-source
+        - name: shared-output
+          workspace: shared-output
 
   finally: 
     - name: check-overall-status

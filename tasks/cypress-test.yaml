@@ -18,7 +18,7 @@ metadata:
   name: cypress-test
   namespace: kvm-cicd
 spec:
-  description: Uses a custom Go builder image to run 'make' commands
+  description: Runs cypress test
   params:
     - name: IMAGE_REGISTRY
       description: The registry URL.
