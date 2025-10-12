@@ -103,10 +103,18 @@ spec:
         - name: dockerconfig
           workspace: docker-credentials
 
+    - name: wait-build-cli-tools
+      taskRef:
+        name: wait
+      runAfter: [build-cli-tools]
+      params:
+        - name: duration
+          value: "30"
+
     - name: build-cypress
       taskRef:
         name: build-container-image
-      runAfter: [git-clone]
+      runAfter: [wait-build-cli-tools]
       params:
         - name: IMAGE_REGISTRY
           value: $(params.IMAGE_REGISTRY)
@@ -124,10 +132,18 @@ spec:
         - name: dockerconfig
           workspace: docker-credentials
 
+    - name: wait-build-cypress
+      taskRef:
+        name: wait
+      runAfter: [build-cypress]
+      params:
+        - name: duration
+          value: "30"
+
     - name: build-node
       taskRef:
         name: build-container-image
-      runAfter: [git-clone]
+      runAfter: [wait-build-cypress]
       params:
         - name: IMAGE_REGISTRY
           value: $(params.IMAGE_REGISTRY)
@@ -145,10 +161,18 @@ spec:
         - name: dockerconfig
           workspace: docker-credentials
 
+    - name: wait-build-node
+      taskRef:
+        name: wait
+      runAfter: [build-node]
+      params:
+        - name: duration
+          value: "30"
+
     - name: build-docs
       taskRef:
         name: build-container-image
-      runAfter: [git-clone]
+      runAfter: [wait-build-node]
       params:
         - name: IMAGE_REGISTRY
           value: $(params.IMAGE_REGISTRY)

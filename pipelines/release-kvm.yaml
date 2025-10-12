@@ -18,7 +18,7 @@ metadata:
   name: release-kvm
   namespace: kvm-cicd
 spec:
-  description: Clones an application repository and then runs 'make' to validate.
+  description: Create a kubevirt-manager release.
   params:
     - name: APP_REPO_URL
       description: "URL of the application Git repository."
@@ -113,7 +113,7 @@ spec:
 
     - name: release-version
       taskRef:
-        name: adjust-version
+        name: adjust-kvm-version
       runAfter: [clone-app-repository]
       params:
         - name: pipelinerun-name
@@ -248,10 +248,13 @@ spec:
           value: $(params.app-clone-subdir)
         - name: THIS_VERSION
           value: $(params.NEW_VERSION)
+      workspaces:
+        - name: source
+          workspace: shared-source
 
     - name: dev-version
       taskRef:
-        name: adjust-version
+        name: adjust-kvm-version
       runAfter: [push-release-version]
       params:
         - name: pipelinerun-name

@@ -15,24 +15,24 @@
 apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
-  name: build-angular
+  name: publish-docs
   namespace: kvm-cicd
 spec:
-  description: Runs npm install and ng build
+  description: Published mkdocs documentation website
   params:
     - name: IMAGE_REGISTRY
       description: The registry URL.
       type: string
-    - name: NODE_IMAGE_NAME
-      description: The NodeJS Image Name.
+    - name: CLI_IMAGE_NAME
+      description: The CLI Image Name.
       type: string
-    - name: NODE_IMAGE_TAG
-      description: The NodeJS Image Tag.
+    - name: CLI_IMAGE_TAG
+      description: The CLI Image Tag.
       type: string
     - name: SUBDIRECTORY
       description: "Subdirectory within the source workspace where the Makefile is located."
       type: string
-      default: "."
+      default: "kubevirt-manager-docs"
     - name: pipelinerun-name
       description: "The name of the current PipelineRun to inspect."
       type: string
@@ -47,19 +47,38 @@ spec:
       description: "Workspace for storing logs and output files."
 
   steps:
-    - name: ng-build
-      image: $(params.IMAGE_REGISTRY)/$(params.NODE_IMAGE_NAME):$(params.NODE_IMAGE_TAG)
+    - name: mkdocs-publish
+      image: $(params.IMAGE_REGISTRY)/$(params.CLI_IMAGE_NAME):$(params.CLI_IMAGE_TAG)
       imagePullPolicy: Always
+      env:
+        - name: FTP_USER
+          valueFrom:
+            secretKeyRef:
+              name: ftp-credentials
+              key: FTP_USER
+        - name: FTP_PASS
+          valueFrom:
+            secretKeyRef:
+              name: ftp-credentials
+              key: FTP_PASS
+        - name: FTP_HOST
+          valueFrom:
+            secretKeyRef:
+              name: ftp-credentials
+              key: FTP_HOST
       workingDir: $(workspaces.source.path)/$(params.SUBDIRECTORY)
       script: |
         #!/bin/bash
         set -e
 
-        echo "--- NPM TEST SCRIPT START ---"
+        export FTP_PATH="/domains/docs.kubevirt-manager.io/public_html"
 
-        export PIPELINERUN_NAME="$(params.pipelinerun-name)"
-        export OUTPUT_DIR="/workspace/shared-output/${PIPELINERUN_NAME}"
+        echo "--- MKDOCS PUBLISH SCRIPT START ---"
 
-        npm install -g @angular/cli@18.0.3 && ng build
+        # Delete artifacts
+        lftp -c "set ssl:verify-certificate no; open -u ${FTP_USER},${FTP_PASS} ${FTP_HOST}; rm -r -f ${FTP_PATH}/*"
+
+        # Upload artifacts
+        lftp -c "set ssl:verify-certificate no; open -u ${FTP_USER},${FTP_PASS} ${FTP_HOST}; mirror -R ./site/ ${FTP_PATH}/"
         
-        echo "--- NPM TEST SCRIPT END ---"
+        echo "--- MKDOCS PUBLISH SCRIPT END ---"

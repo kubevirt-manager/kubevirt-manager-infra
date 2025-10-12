@@ -12,10 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM docker.io/python:3.9-slim
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: wait
+  namespace: kvm-cicd
+spec:
+  description: Clones a Git repository using alpine/git.
+  params:
+    - name: DURATION
+      description: 'Time to wait in seconds'
+      type: string
+      default: '120' # 120 seconds
 
-# Install mkdocs and material
-RUN pip install --upgrade pip && \
-    pip install mkdocs mkdocs-material
-
-WORKDIR /docs
+  steps:
+    - name: wait
+      image: ubuntu
+      script: |
+        #!/bin/bash
+        DURATION=$(params.DURATION)
+        echo "--- WAIT SCRIPT START ---"
+        echo "Waiting ${DURATION} seconds..."
+        sleep ${DURATION}
+        echo "--- WAIT SCRIPT END ---"

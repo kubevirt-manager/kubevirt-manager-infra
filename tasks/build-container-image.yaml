@@ -18,7 +18,7 @@ metadata:
   name: build-container-image 
   namespace: kvm-cicd
 spec:
-  description: Kaniko task to build and push an image
+  description: Buildah task to build and push an image
   params:
     - name: IMAGE_REGISTRY
       description: The registry URL.
@@ -57,6 +57,8 @@ spec:
       script: |
         #!/bin/bash
         set -e
+
+        echo "--- BUILD CONTAINER IMAGE ---"
         
         BUILD_CONTEXT=$(params.CONTEXT_SUBDIR)
         DOCKERFILE_PATH=$(params.CONTEXT_SUBDIR)/$(params.DOCKERFILE_PATH)
@@ -72,7 +74,7 @@ spec:
         mountPath: /var/lib/containers
 
       securityContext:
-        privileged: true # Necessário para rodar o Buildah dentro de um contêiner
+        privileged: true
 
     - name: push
       image: quay.io/buildah/stable:latest
@@ -83,6 +85,8 @@ spec:
       script: |
         #!/bin/bash
         set -e
+
+        echo "--- PUSH CONTAINER IMAGE ---"
         
         IMAGE_NAME_TAG=$(params.IMAGE_REGISTRY)/$(params.IMAGE_NAME):$(params.IMAGE_TAG)
         

@@ -18,7 +18,7 @@ metadata:
   name: validate-kvm
   namespace: kvm-cicd
 spec:
-  description: Clones an application repository and then runs 'make' to validate.
+  description: Test kubevirt-manager.
   params:
     - name: APP_REPO_URL
       description: "URL of the application Git repository."
