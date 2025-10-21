@@ -58,6 +58,10 @@ spec:
               value: "mkdocs-builder"
             - name: DOCS_IMAGE_TAG
               value: "nightly"
+            - name: NGINX_IMAGE_NAME
+              value: "kvm-nginx"
+            - name: NGINX_IMAGE_TAG
+              value: "nightly"
             - name: KVM_INFRA_GIT
               value: "https://github.com/kubevirt-manager/kubevirt-manager-infra.git"
             command:

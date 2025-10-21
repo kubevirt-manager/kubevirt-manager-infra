@@ -18,7 +18,7 @@ metadata:
   name: nightly-taskrun-pruner
   namespace: kvm-cicd
 spec:
-  schedule: "45 05 * * *"
+  schedule: "58 05 * * *"
   timeZone: "America/Sao_Paulo"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 5
@@ -32,9 +32,10 @@ spec:
             image: kubevirtmanager/kvm-cli-tools:nightly
             command: ["/usr/local/bin/tkn"]
             args:
-            - "prune"
             - "taskruns"
+            - "delete"
             - "--all"
             - "--keep=5"
-            - "--age=2d"
+            - "-n"
+            - "kvm-cicd"
           restartPolicy: OnFailure

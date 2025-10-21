@@ -47,6 +47,12 @@ spec:
     - name: DOCS_IMAGE_TAG
       description: image tag.
       type: string
+    - name: NGINX_IMAGE_NAME
+      description: image name.
+      type: string
+    - name: NGNIX_IMAGE_TAG
+      description: image tag.
+      type: string
     - name: INFRA_REPO_URL
       description: "URL of the infrastructure Git repository."
     - name: INFRA_REPO_BRANCH
@@ -182,6 +188,35 @@ spec:
           value: $(params.DOCS_IMAGE_TAG)
         - name: DOCKERFILE_PATH
           value: images/Dockerfile.docs 
+        - name: CONTEXT_SUBDIR
+          value: $(params.infra-repo-clone-subdir)
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+        - name: dockerconfig
+          workspace: docker-credentials
+
+    - name: wait-build-docs
+      taskRef:
+        name: wait
+      runAfter: [build-docs]
+      params:
+        - name: DURATION
+          value: "30"
+
+    - name: build-nginx
+      taskRef:
+        name: build-container-image
+      runAfter: [wait-build-docs]
+      params:
+        - name: IMAGE_REGISTRY
+          value: $(params.IMAGE_REGISTRY)
+        - name: IMAGE_NAME
+          value: $(params.NGINX_IMAGE_NAME)
+        - name: IMAGE_TAG
+          value: $(params.NGINX_IMAGE_TAG)
+        - name: DOCKERFILE_PATH
+          value: images/Dockerfile.nginx 
         - name: CONTEXT_SUBDIR
           value: $(params.infra-repo-clone-subdir)
       workspaces:

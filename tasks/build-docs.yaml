@@ -64,4 +64,4 @@ spec:
         mkdir -p ${OUTPUT_DIR}/site/
         cp -R ./site/* ${OUTPUT_DIR}/site/
         
-        echo "--- MKDORCS BUILD SCRIPT END ---"
+        echo "--- MKDOCS BUILD SCRIPT END ---"

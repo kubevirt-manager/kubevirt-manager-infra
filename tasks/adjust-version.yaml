@@ -94,12 +94,14 @@ spec:
           yq -i "select(.kind == \"PriorityClass\").metadata.labels.\"kubevirt-manager.io/version\" = \"v${NEW_VERSION}\"" kubernetes/pc.yaml
 
           yq -i "select(.kind == \"Deployment\").metadata.labels.\"kubevirt-manager.io/version\" = \"v${NEW_VERSION}\"" kubernetes/bundled.yaml
-          yq -i "select(.kind == \"Deployment\").spec.template.spec.containers[0].image = \"kubevirt-manager/kubevirt-manager:v${NEW_VERSION}\"" kubernetes/bundled.yaml
+          yq -i "select(.kind == \"Deployment\").spec.template.spec.containers[0].image = \"kubevirtmanager/kubevirt-manager:${NEW_VERSION}\"" kubernetes/bundled.yaml
           yq -i "select(.kind == \"Deployment\").spec.template.metadata.labels.\"kubevirt-manager.io/version\" = \"v${NEW_VERSION}\"" kubernetes/bundled.yaml
+          yq -i "select(.kind == \"Deployment\").spec.selector.matchLables.\"kubevirt-manager.io/version\" = \"v${NEW_VERSION}\"" kubernetes/bundled.yaml
 
           yq -i "select(.kind == \"Deployment\").metadata.labels.\"kubevirt-manager.io/version\" = \"v${NEW_VERSION}\"" kubernetes/deployment.yaml
-          yq -i "select(.kind == \"Deployment\").spec.template.spec.containers[0].image = \"kubevirt-manager/kubevirt-manager:v${NEW_VERSION}\"" kubernetes/deployment.yaml
+          yq -i "select(.kind == \"Deployment\").spec.template.spec.containers[0].image = \"kubevirtmanager/kubevirt-manager:${NEW_VERSION}\"" kubernetes/deployment.yaml
           yq -i "select(.kind == \"Deployment\").spec.template.metadata.labels.\"kubevirt-manager.io/version\" = \"v${NEW_VERSION}\"" kubernetes/deployment.yaml
+          yq -i "select(.kind == \"Deployment\").spec.selector.matchLables.\"kubevirt-manager.io/version\" = \"v${NEW_VERSION}\"" kubernetes/deployment.yaml
 
           yq -i "select(.kind == \"Service\").metadata.labels.\"kubevirt-manager.io/version\" = \"v${NEW_VERSION}\"" kubernetes/bundled.yaml
           yq -i "select(.kind == \"Service\").metadata.labels.\"kubevirt-manager.io/version\" = \"v${NEW_VERSION}\"" kubernetes/service.yaml
@@ -140,12 +142,14 @@ spec:
           yq -i "select(.kind == \"PriorityClass\").metadata.labels.\"kubevirt-manager.io/version\" = \"nightly\"" kubernetes/pc.yaml
 
           yq -i "select(.kind == \"Deployment\").metadata.labels.\"kubevirt-manager.io/version\" = \"nightly\"" kubernetes/bundled.yaml
-          yq -i "select(.kind == \"Deployment\").spec.template.spec.containers[0].image = \"kubevirt-manager/kubevirt-manager:nightly\"" kubernetes/bundled.yaml
+          yq -i "select(.kind == \"Deployment\").spec.template.spec.containers[0].image = \"kubevirtmanager/kubevirt-manager:nightly\"" kubernetes/bundled.yaml
           yq -i "select(.kind == \"Deployment\").spec.template.metadata.labels.\"kubevirt-manager.io/version\" = \"nightly\"" kubernetes/bundled.yaml
+          yq -i "select(.kind == \"Deployment\").spec.selector.matchLables.\"kubevirt-manager.io/version\" = \"nightly\"" kubernetes/bundled.yaml
 
           yq -i "select(.kind == \"Deployment\").metadata.labels.\"kubevirt-manager.io/version\" = \"nightly\"" kubernetes/deployment.yaml
-          yq -i "select(.kind == \"Deployment\").spec.template.spec.containers[0].image = \"kubevirt-manager/kubevirt-manager:nightly\"" kubernetes/deployment.yaml
+          yq -i "select(.kind == \"Deployment\").spec.template.spec.containers[0].image = \"kubevirtmanager/kubevirt-manager:nightly\"" kubernetes/deployment.yaml
           yq -i "select(.kind == \"Deployment\").spec.template.metadata.labels.\"kubevirt-manager.io/version\" = \"nightly\"" kubernetes/deployment.yaml
+          yq -i "select(.kind == \"Deployment\").spec.selector.matchLables.\"kubevirt-manager.io/version\" = \"nightly\"" kubernetes/deployment.yaml
 
           yq -i "select(.kind == \"Service\").metadata.labels.\"kubevirt-manager.io/version\" = \"nightly\"" kubernetes/bundled.yaml
           yq -i "select(.kind == \"Service\").metadata.labels.\"kubevirt-manager.io/version\" = \"nightly\"" kubernetes/service.yaml
