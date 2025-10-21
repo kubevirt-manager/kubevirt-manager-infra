@@ -51,6 +51,10 @@ spec:
       value: "${DOCS_IMAGE_NAME}"
     - name: DOCS_IMAGE_TAG
       value: "${DOCS_IMAGE_TAG}"
+    - name: NGINX_IMAGE_NAME
+      value: "${NGINX_IMAGE_NAME}"
+    - name: NGINX_IMAGE_TAG
+      value: "${NGINX_IMAGE_TAG}"
 
   workspaces:
     - name: shared-workspace
