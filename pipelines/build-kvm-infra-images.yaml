@@ -50,7 +50,7 @@ spec:
     - name: NGINX_IMAGE_NAME
       description: image name.
       type: string
-    - name: NGNIX_IMAGE_TAG
+    - name: NGINX_IMAGE_TAG
       description: image tag.
       type: string
     - name: INFRA_REPO_URL
