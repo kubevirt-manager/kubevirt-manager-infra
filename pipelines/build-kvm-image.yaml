@@ -91,7 +91,7 @@ spec:
         - name: IMAGE_TAG
           value: $(params.IMAGE_TAG)
         - name: DOCKERFILE_PATH
-          value: ./Dockerfile 
+          value: ./Dockerfile.cicd 
         - name: CONTEXT_SUBDIR
           value: "$(params.app-clone-subdir)/$(params.makefile-subdir-in-app)"
       workspaces:

@@ -87,7 +87,7 @@ spec:
 
         echo "--- PUSH CONTAINER IMAGE ---"
 
-        MAX_RETRIES=3
+        MAX_RETRIES=5
         DELAY_SECONDS=30
         RETRY_COUNT=0
         
@@ -110,6 +110,7 @@ spec:
             if [ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]; then
               echo "Waiting ${DELAY_SECONDS} seconds..."
               sleep ${DELAY_SECONDS}
+              DELAY_SECONDS+=15
             fi
           fi
         done
