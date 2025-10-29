@@ -46,7 +46,7 @@ RUN apt-get update && \
     ssh && \
     # Install Docker CLI from the official Docker repository (most reliable method)
     install -m 0755 -d /etc/apt/keyrings && \
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc && \
+    curl --retry 5 --retry-delay 20 --retry-max-time 100 -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc && \
     chmod a+r /etc/apt/keyrings/docker.asc && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
     $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
@@ -54,7 +54,7 @@ RUN apt-get update && \
     apt-get update && \
     apt-get install -y --no-install-recommends docker-ce-cli && \
     # Install Github CLI
-    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg &&\
+    curl --retry 5 --retry-delay 20 --retry-max-time 100 -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg &&\
     chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null && \
     apt-get update && apt-get install -y gh && \
@@ -63,29 +63,29 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Download and install the rest of the CLI tools in a single layer
-RUN curl -Lo /usr/local/bin/kind "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-amd64" && \
+RUN curl --retry 5 --retry-delay 20 --retry-max-time 100 -Lo /usr/local/bin/kind "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-amd64" && \
     chmod +x /usr/local/bin/kind && \
     # Kubectl
-    curl -Lo /usr/local/bin/kubectl "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" && \
+    curl --retry 5 --retry-delay 20 --retry-max-time 100 -Lo /usr/local/bin/kubectl "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" && \
     chmod +x /usr/local/bin/kubectl && \
     # Helm
-    curl -Lo helm.tar.gz "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz" && \
+    curl --retry 5 --retry-delay 20 --retry-max-time 100 -Lo helm.tar.gz "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz" && \
     tar -xzf helm.tar.gz && \
     mv linux-amd64/helm /usr/local/bin/helm && \
     rm -rf helm.tar.gz linux-amd64 && \
     # Kustomize
-    curl -Lo kustomize.tar.gz "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz" && \
+    curl --retry 5 --retry-delay 20 --retry-max-time 100 -Lo kustomize.tar.gz "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz" && \
     tar -xzf kustomize.tar.gz && \
     mv kustomize /usr/local/bin/kustomize && \
     rm kustomize.tar.gz && \
     # JQ
-    curl -Lo /usr/local/bin/jq "https://github.com/stedolan/jq/releases/download/jq-${JQ_VERSION}/jq-linux-amd64" && \
+    curl --retry 5 --retry-delay 20 --retry-max-time 100 -Lo /usr/local/bin/jq "https://github.com/stedolan/jq/releases/download/jq-${JQ_VERSION}/jq-linux-amd64" && \
     chmod +x /usr/local/bin/jq && \
     # YQ
-    curl -Lo /usr/local/bin/yq "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" && \
+    curl --retry 5 --retry-delay 20 --retry-max-time 100 -Lo /usr/local/bin/yq "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" && \
     chmod +x /usr/local/bin/yq && \
     # TKN
-    curl -Lo tekton.tar.gz "https://github.com/tektoncd/cli/releases/download/v0.41.1/tkn_${TKN_VERSION}_Linux_x86_64.tar.gz" && \
+    curl --retry 5 --retry-delay 20 --retry-max-time 100 -Lo tekton.tar.gz "https://github.com/tektoncd/cli/releases/download/v0.41.1/tkn_${TKN_VERSION}_Linux_x86_64.tar.gz" && \
     tar -xzf tekton.tar.gz && \
     mv tkn /usr/local/bin/tkn && \
     rm -rf LICENSE README.md && \
