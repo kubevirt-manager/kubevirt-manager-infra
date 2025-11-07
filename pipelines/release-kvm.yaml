@@ -100,7 +100,7 @@ spec:
         - name: url
           value: "https://github.com/novnc/noVNC.git"
         - name: revision
-          value: "main"
+          value: "master"
         - name: subdirectory
           value: $(params.app-clone-subdir)/src/assets/
         - name: deleteExisting
