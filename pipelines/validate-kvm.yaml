@@ -90,6 +90,7 @@ spec:
     - name: clone-novnc-repository
       taskRef:
         name: git-clone
+      runAfter: [clone-app-repository]
       params:
         - name: url
           value: "https://github.com/novnc/noVNC.git"
