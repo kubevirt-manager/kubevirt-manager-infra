@@ -102,7 +102,7 @@ spec:
         - name: revision
           value: "master"
         - name: subdirectory
-          value: $(params.app-clone-subdir)/src/assets/
+          value: $(params.app-clone-subdir)/src/assets/noVNC/
         - name: deleteExisting
           value: "true"
         - name: sslVerify
