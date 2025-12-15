@@ -169,10 +169,31 @@ spec:
         - name: shared-output
           workspace: shared-output
 
+    - name: clean 
+      taskRef:
+        name: npm-clean
+      runAfter: [test]
+      params:
+        - name: SUBDIRECTORY
+          value: "$(params.app-clone-subdir)"
+        - name: pipelinerun-name
+          value: $(context.pipelineRun.name)
+        - name: IMAGE_REGISTRY
+          value: "$(params.IMAGE_REGISTRY)"
+        - name: NODE_IMAGE_NAME
+          value: "$(params.NODE_IMAGE_NAME)"
+        - name: NODE_IMAGE_TAG
+          value: "$(params.NODE_IMAGE_TAG)"
+      workspaces:
+        - name: source
+          workspace: shared-source
+        - name: shared-output
+          workspace: shared-output
+
     - name: build-container-image
       taskRef:
         name: build-container-image
-      runAfter: [test]
+      runAfter: [clean]
       params:
         - name: IMAGE_REGISTRY
           value: $(params.IMAGE_REGISTRY)
