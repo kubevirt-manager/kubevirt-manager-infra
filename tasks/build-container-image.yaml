@@ -51,6 +51,17 @@ spec:
       emptyDir: {}
 
   steps:
+    - name: clean
+      image: quay.io/buildah/stable:latest
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/bin/bash
+        set -e
+
+        echo "--- CLEAN IMAGE CACHE AND CONTAINERS ---"
+        buildah rmi --all || true
+        buildah rm --all || true
+
     - name: build
       image: quay.io/buildah/stable:latest
       workingDir: $(workspaces.source.path)
@@ -65,7 +76,8 @@ spec:
         IMAGE_NAME_TAG=$(params.IMAGE_REGISTRY)/$(params.IMAGE_NAME):$(params.IMAGE_TAG)
         
         buildah --storage-driver=vfs bud \
-          --timestamp=0 --format=docker \
+          --build-arg KVM_VERSION=$(params.IMAGE_TAG) \
+          --format=docker \
           --tls-verify=false --no-cache \
           -f ${DOCKERFILE_PATH} -t ${IMAGE_NAME_TAG} ${BUILD_CONTEXT}
           
@@ -110,7 +122,7 @@ spec:
             if [ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]; then
               echo "Waiting ${DELAY_SECONDS} seconds..."
               sleep ${DELAY_SECONDS}
-              DELAY_SECONDS+=15
+              DELAY_SECONDS=$((DELAY_SECONDS + 15))
             fi
           fi
         done

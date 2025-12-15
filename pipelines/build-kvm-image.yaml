@@ -42,6 +42,12 @@ spec:
       description: "Revision of the application Git repository."
       type: string
       default: "main"
+    - name: NODE_IMAGE_NAME
+      description: image name.
+      type: string
+    - name: NODE_IMAGE_TAG
+      description: image tag.
+      type: string
     - name: app-clone-subdir
       description: "Subdirectory within the shared-source workspace to clone the application repo into."
       type: string
@@ -78,6 +84,27 @@ spec:
       workspaces:
         - name: source
           workspace: shared-source
+
+    - name: clean 
+      taskRef:
+        name: npm-clean
+      runAfter: [git-clone]
+      params:
+        - name: SUBDIRECTORY
+          value: "$(params.app-clone-subdir)"
+        - name: pipelinerun-name
+          value: $(context.pipelineRun.name)
+        - name: IMAGE_REGISTRY
+          value: "$(params.IMAGE_REGISTRY)"
+        - name: NODE_IMAGE_NAME
+          value: "$(params.NODE_IMAGE_NAME)"
+        - name: NODE_IMAGE_TAG
+          value: "$(params.NODE_IMAGE_TAG)"
+      workspaces:
+        - name: source
+          workspace: shared-source
+        - name: shared-output
+          workspace: shared-output
 
     - name: build-container-image
       taskRef:

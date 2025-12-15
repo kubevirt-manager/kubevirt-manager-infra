@@ -43,6 +43,10 @@ spec:
       value: "${CLI_IMAGE_NAME}"
     - name: CLI_IMAGE_TAG
       value: "${CLI_IMAGE_TAG}"
+    - name: NODE_IMAGE_NAME
+      value: "${NODE_IMAGE_NAME}"
+    - name: NODE_IMAGE_TAG
+      value: "${NODE_IMAGE_TAG}"
       
   workspaces:
     - name: shared-source
